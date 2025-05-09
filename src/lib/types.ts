@@ -53,6 +53,7 @@ export interface HistoricalComplianceDataPoint {
 export interface PolicyComplianceHistory {
   policyId: string;
   policyName: string;
+  type: 'policy' | 'initiative'; // Added type field
   history: HistoricalComplianceDataPoint[];
 }
 
@@ -104,4 +105,3 @@ export interface AIConfigurationStored {
   vertexAILocation?: string;
   vertexAIModelId?: string;
 }
-

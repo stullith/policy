@@ -71,22 +71,38 @@ export const placeholderPolicyHistoryData: PolicyComplianceHistory[] = [
   {
     policyId: "policy-locations-hist",
     policyName: "Allowed locations",
+    type: "policy",
     history: generateHistoricalData(12), // 12 months of data
   },
   {
-    policyId: "policy-https-hist",
-    policyName: "Enforce HTTPS only",
+    policyId: "initiative-security-baseline-hist",
+    policyName: "Security Baseline Initiative",
+    type: "initiative",
     history: generateHistoricalData(12),
   },
   {
     policyId: "policy-disk-encryption-hist",
     policyName: "Disk encryption for VMs",
+    type: "policy",
     history: generateHistoricalData(12),
   },
   {
-    policyId: "policy-defender-sql-hist",
-    policyName: "Azure Defender for SQL",
+    policyId: "initiative-data-protection-hist",
+    policyName: "Data Protection Initiative",
+    type: "initiative",
     history: generateHistoricalData(6), // 6 months of data
+  },
+   {
+    policyId: "policy-mfa-admin-hist",
+    policyName: "Require MFA for Admins",
+    type: "policy",
+    history: generateHistoricalData(9),
+  },
+  {
+    policyId: "initiative-governance-hist",
+    policyName: "Governance Initiative",
+    type: "initiative",
+    history: generateHistoricalData(10),
   },
 ];
 
