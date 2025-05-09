@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { AzureConnection } from '@/hooks/use-connections';
+import type { AzureConnectionClient } from '@/lib/types'; // Updated type
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -16,33 +16,27 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trash2, FileKey } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+// Toast is now handled by useConnections hook
+// import { useToast } from '@/hooks/use-toast'; 
 
 interface ConnectionListProps {
-  connections: AzureConnection[];
-  onDeleteConnection: (id: string) => void;
+  connections: AzureConnectionClient[]; // Updated type
+  onDeleteConnection: (id: string) => Promise<void>; // Updated to be async
 }
 
 export function ConnectionList({ connections, onDeleteConnection }: ConnectionListProps) {
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Toast is now handled by useConnections
 
   if (connections.length === 0) {
-    return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured yet.</p>;
+    return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured in Key Vault.</p>;
   }
 
-  const handleDelete = (connection: AzureConnection) => {
+  const handleDelete = async (connection: AzureConnectionClient) => {
     try {
-      onDeleteConnection(connection.id);
-      toast({
-        title: 'Connection Removed',
-        description: `The connection "${connection.name}" has been successfully removed.`,
-      });
+      await onDeleteConnection(connection.id);
+      // Success toast is handled by useConnections hook
     } catch (error) {
-       toast({
-        title: 'Error Removing Connection',
-        description: 'An unexpected error occurred while removing the connection. Please try again.',
-        variant: 'destructive',
-      });
+      // Error toast is handled by useConnections hook
       console.error("Error in handleDelete ConnectionList:", error);
     }
   };
@@ -56,6 +50,7 @@ export function ConnectionList({ connections, onDeleteConnection }: ConnectionLi
             <TableHead>Name</TableHead>
             <TableHead>Tenant ID</TableHead>
             <TableHead>Client ID</TableHead>
+            {/* Client Secret column removed for security */}
             <TableHead className="text-right pr-4 w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -66,6 +61,7 @@ export function ConnectionList({ connections, onDeleteConnection }: ConnectionLi
               <TableCell className="font-medium">{conn.name}</TableCell>
               <TableCell className="truncate max-w-xs">{conn.tenantId}</TableCell>
               <TableCell className="truncate max-w-xs">{conn.clientId}</TableCell>
+              {/* Client Secret cell removed */}
               <TableCell className="text-right pr-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -77,8 +73,8 @@ export function ConnectionList({ connections, onDeleteConnection }: ConnectionLi
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete the connection "{conn.name}"? 
-                        This action cannot be undone and will remove its credentials from local storage.
+                        Are you sure you want to delete the connection "{conn.name}" from Azure Key Vault? 
+                        This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

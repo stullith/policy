@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { AzureConnection } from '@/hooks/use-connections';
+import type { AzureConnectionInput, AzureConnectionClient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle } from 'lucide-react';
 
@@ -21,11 +21,13 @@ const connectionFormSchema = z.object({
 type ConnectionFormValues = z.infer<typeof connectionFormSchema>;
 
 interface NewConnectionFormProps {
-  onAddConnection: (connection: Omit<AzureConnection, 'id'>) => AzureConnection;
+  onAddConnection: (connection: AzureConnectionInput) => Promise<AzureConnectionClient | undefined>; // Updated to be async and return client data or undefined on error
 }
 
 export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
-  const { toast } = useToast();
+  // toast is now handled by useConnections hook upon success/failure of server action
+  // const { toast } = useToast(); 
+  
   const form = useForm<ConnectionFormValues>({
     resolver: zodResolver(connectionFormSchema),
     defaultValues: {
@@ -36,20 +38,16 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
     },
   });
 
-  function onSubmit(data: ConnectionFormValues) {
+  async function onSubmit(data: ConnectionFormValues) {
     try {
-      const newConnection = onAddConnection(data); // Call the passed-in function
-      toast({
-        title: 'Connection Added',
-        description: `Connection "${newConnection.name}" has been successfully added.`,
-      });
-      form.reset(); // Reset form fields after successful submission
+      const newConnectionClientData = await onAddConnection(data);
+      if (newConnectionClientData) { // Check if connection was successfully added
+        form.reset(); // Reset form fields after successful submission
+      }
+      // Success toast is handled by useConnections hook
     } catch (error) {
-      toast({
-        title: 'Error Adding Connection',
-        description: 'An unexpected error occurred while adding the connection. Please try again.',
-        variant: 'destructive',
-      });
+      // Error toast is handled by useConnections hook
+      // No need to display another toast here unless for specific form errors not caught by the hook
       console.error("Error in onSubmit NewConnectionForm:", error);
     }
   }
@@ -106,8 +104,8 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
               <FormControl>
                 <Input type="password" placeholder="Enter Client Secret Value" {...field} />
               </FormControl>
-              <FormDescription className="text-destructive">
-                Warning: This secret will be stored in your browser's local storage, which is insecure.
+              <FormDescription className="text-accent">
+                This secret will be securely stored in Azure Key Vault using your application's Managed Identity.
               </FormDescription>
               <FormMessage />
             </FormItem>

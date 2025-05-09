@@ -2,80 +2,102 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import type { AzureConnectionClient, AzureConnectionInput } from '@/lib/types';
+import { 
+  addAzureConnectionToKeyVault, 
+  getAzureConnectionsFromKeyVault, 
+  deleteAzureConnectionFromKeyVault 
+} from '@/app/settings/keyvault-actions';
+import { useToast } from './use-toast';
 
-export interface AzureConnection {
-  id: string;
-  name: string;
-  tenantId: string;
-  clientId: string;
-  clientSecret: string; // Reminder: Highly insecure to store in localStorage
-}
-
-const LOCAL_STORAGE_KEY = 'azureConnections';
-
-// WARNING: SECURITY RISK
-// Storing sensitive credentials like Client ID and Client Secret in localStorage
-// is HIGHLY INSECURE and NOT SUITABLE for production environments.
-// This implementation is for demonstration and local development purposes ONLY.
-// In a real application, use a secure backend (e.g., server-side storage with encryption,
-// or a secrets manager) to store and manage these credentials.
-// Frontend applications should never directly handle or store client secrets.
 
 export function useConnections() {
-  const [connections, setConnections] = useState<AzureConnection[]>([]);
+  const [connections, setConnections] = useState<AzureConnectionClient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    // Ensure localStorage is accessed only on the client side
-    if (typeof window !== 'undefined') {
-      try {
-        const storedConnections = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedConnections) {
-          setConnections(JSON.parse(storedConnections));
-        }
-      } catch (error) {
-        console.error("Failed to load connections from localStorage:", error);
-        // Optionally, clear corrupted data:
-        // localStorage.removeItem(LOCAL_STORAGE_KEY);
-      }
+  const fetchConnections = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const fetchedConnections = await getAzureConnectionsFromKeyVault();
+      setConnections(fetchedConnections);
+    } catch (err) {
+      console.error("Failed to load connections from Key Vault:", err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      setError(errorMessage);
+      toast({
+        title: "Error Loading Connections",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setConnections([]); // Clear connections on error
+    } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
-  const saveConnections = useCallback((updatedConnections: AzureConnection[]) => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedConnections));
-        setConnections(updatedConnections);
-      } catch (error) {
-        console.error("Failed to save connections to localStorage:", error);
-      }
+  useEffect(() => {
+    fetchConnections();
+  }, [fetchConnections]);
+
+  const addConnection = useCallback(async (newConnectionData: AzureConnectionInput) => {
+    setIsLoading(true); // Or a specific adding state
+    setError(null);
+    try {
+      const newConnectionClientData = await addAzureConnectionToKeyVault(newConnectionData);
+      setConnections((prevConnections) => [...prevConnections, newConnectionClientData]);
+      toast({
+        title: "Connection Added",
+        description: `Connection "${newConnectionData.name}" has been successfully added and stored in Azure Key Vault.`,
+      });
+      return newConnectionClientData; // Return the client-safe data
+    } catch (err) {
+      console.error("Failed to add connection via Key Vault:", err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while adding connection.';
+      setError(errorMessage); // Set general error state
+      toast({
+        title: "Error Adding Connection",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw err; // Re-throw to be caught by form if necessary
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
 
-  const addConnection = useCallback((newConnection: Omit<AzureConnection, 'id'>) => {
-    const connectionWithId = { ...newConnection, id: crypto.randomUUID() };
-    const updatedConnections = [...connections, connectionWithId];
-    saveConnections(updatedConnections);
-    return connectionWithId; // Return the new connection with ID
-  }, [connections, saveConnections]);
+  const removeConnection = useCallback(async (connectionId: string) => {
+    // Optional: Add a specific loading state for deletion
+    setError(null);
+    const connectionToRemove = connections.find(c => c.id === connectionId);
+    try {
+      await deleteAzureConnectionFromKeyVault(connectionId);
+      setConnections((prevConnections) => prevConnections.filter(conn => conn.id !== connectionId));
+      toast({
+        title: "Connection Removed",
+        description: `Connection "${connectionToRemove?.name || connectionId}" has been successfully removed from Azure Key Vault.`,
+      });
+    } catch (err) {
+      console.error("Failed to remove connection via Key Vault:", err);
+       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while removing connection.';
+      setError(errorMessage);
+      toast({
+        title: "Error Removing Connection",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [connections, toast]);
 
-  const removeConnection = useCallback((connectionId: string) => {
-    const updatedConnections = connections.filter(conn => conn.id !== connectionId);
-    saveConnections(updatedConnections);
-  }, [connections, saveConnections]);
-
-  // Placeholder for future update functionality
-  // const updateConnection = useCallback((updatedConn: AzureConnection) => {
-  //   const updatedConnections = connections.map(conn => conn.id === updatedConn.id ? updatedConn : conn);
-  //   saveConnections(updatedConnections);
-  // }, [connections, saveConnections]);
 
   return {
     connections,
     addConnection,
     removeConnection,
     isLoading,
-    // updateConnection (if implemented)
+    error,
+    retryFetch: fetchConnections, // Expose a retry mechanism
   };
 }

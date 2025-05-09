@@ -1,39 +1,6 @@
-export type ComplianceStatus = "Compliant" | "Non-Compliant" | "Pending";
 
-export interface ComplianceItem {
-  id: string;
-  resourceName: string;
-  resourceType: string;
-  resourceGroup: string;
-  subscription: string;
-  policyDefinition: string;
-  complianceStatus: ComplianceStatus;
-  lastScanned: string; 
-  details?: string;
-}
-
-export interface ComplianceSummary {
-  totalResources: number;
-  compliantResources: number;
-  nonCompliantResources: number;
-  pendingResources: number;
-  compliancePercentage: number;
-  totalPolicies: number;
-  criticalViolations: number;
-}
-
-// New interfaces for historical data
-export interface HistoricalComplianceDataPoint {
-  date: string; // "YYYY-MM-DD"
-  compliancePercentage: number;
-}
-
-export interface PolicyComplianceHistory {
-  policyId: string;
-  policyName: string;
-  history: HistoricalComplianceDataPoint[];
-}
-
+// AzureConnection related types are now in src/lib/types.ts
+import type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory } from '@/lib/types';
 
 const sampleSubscriptions = ["Sub-Alpha", "Sub-Bravo", "Sub-Charlie"];
 const sampleResourceGroups = ["RG-WebApp", "RG-Database", "RG-Network", "RG-Storage-Prod", "RG-Storage-Dev"];
@@ -42,6 +9,7 @@ const samplePolicyDefinitions = [
   "Allowed locations",
   "Audit VMs without disaster recovery",
   "Enforce HTTPS only",
+  "Require HTTPS only",
   "Require tags on resources",
   "Disk encryption should be applied on virtual machines",
   "Azure Defender should be enabled for SQL servers",
@@ -121,3 +89,6 @@ export const placeholderPolicyHistoryData: PolicyComplianceHistory[] = [
     history: generateHistoricalData(6), // 6 months of data
   },
 ];
+
+// Export types that were previously here but are now in lib/types
+export type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory };
