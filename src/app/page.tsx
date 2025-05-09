@@ -2,15 +2,19 @@ import { ComplianceSummaryCard } from "@/components/compliance/compliance-summar
 import { FilterControls } from "@/components/compliance/filter-controls";
 import { ExportButton } from "@/components/compliance/export-button";
 import { ComplianceDataTable } from "@/components/compliance/compliance-data-table";
-import { placeholderComplianceItems, placeholderComplianceSummary } from "@/lib/placeholder-data";
-import { Package, ShieldCheck, ShieldAlert, Percent, FileText, AlertTriangle } from "lucide-react";
+import { placeholderComplianceItems, placeholderComplianceSummary, placeholderSubscriptionHistoryData } from "@/lib/placeholder-data";
+import { Package, ShieldCheck, ShieldAlert, Percent, TrendingUp } from "lucide-react";
+import { SubscriptionComplianceChart } from "@/components/trends/subscription-compliance-chart";
+import { Card, CardContent } from "@/components/ui/card";
+
 
 export default function DashboardPage() {
   const summary = placeholderComplianceSummary;
   const items = placeholderComplianceItems;
+  const subscriptionHistory = placeholderSubscriptionHistoryData;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8"> {/* Increased main gap */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-primary">Compliance Overview</h1>
         <ExportButton data={items} filenamePrefix="dashboard-compliance-report" />
@@ -46,6 +50,31 @@ export default function DashboardPage() {
         />
       </div>
 
+      <div>
+        <h2 className="text-2xl font-semibold mb-4 flex items-center">
+          <TrendingUp className="mr-3 h-7 w-7 text-primary" />
+          Subscription Compliance Trends
+        </h2>
+        {subscriptionHistory.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+            {subscriptionHistory.map((subHistory) => (
+              <SubscriptionComplianceChart
+                key={subHistory.subscriptionId}
+                data={subHistory.history}
+                title={`${subHistory.subscriptionName} - Trend`}
+                description={`Historical compliance for ${subHistory.subscriptionName}.`}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-6"> {/* Ensure CardContent is imported and used correctly */}
+              <p className="text-muted-foreground">No subscription historical data available to display trends.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
       <FilterControls />
 
       <div>

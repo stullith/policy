@@ -1,6 +1,6 @@
 
 // AzureConnection related types are now in src/lib/types.ts
-import type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory } from '@/lib/types';
+import type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory, SubscriptionComplianceHistory } from '@/lib/types';
 
 const sampleSubscriptions = ["Sub-Alpha", "Sub-Bravo", "Sub-Charlie"];
 const sampleResourceGroups = ["RG-WebApp", "RG-Database", "RG-Network", "RG-Storage-Prod", "RG-Storage-Dev"];
@@ -106,5 +106,13 @@ export const placeholderPolicyHistoryData: PolicyComplianceHistory[] = [
   },
 ];
 
+export const placeholderSubscriptionHistoryData: SubscriptionComplianceHistory[] = sampleSubscriptions.map((subName, index) => ({
+  subscriptionId: `sub-hist-${index + 1}`,
+  subscriptionName: subName,
+  history: generateHistoricalData(12), // 12 months of data for each subscription
+}));
+
+
 // Export types that were previously here but are now in lib/types
-export type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory };
+export type { ComplianceStatus, ComplianceItem, ComplianceSummary, HistoricalComplianceDataPoint, PolicyComplianceHistory, SubscriptionComplianceHistory };
+

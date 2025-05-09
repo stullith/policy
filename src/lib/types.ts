@@ -57,6 +57,13 @@ export interface PolicyComplianceHistory {
   history: HistoricalComplianceDataPoint[];
 }
 
+export interface SubscriptionComplianceHistory {
+  subscriptionId: string;
+  subscriptionName: string;
+  history: HistoricalComplianceDataPoint[];
+}
+
+
 // AI Backend Configuration Types
 export type AIBackendType = 'default' | 'azure_openai' | 'vertex_ai';
 
@@ -105,3 +112,4 @@ export interface AIConfigurationStored {
   vertexAILocation?: string;
   vertexAIModelId?: string;
 }
+
