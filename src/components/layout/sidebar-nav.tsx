@@ -1,3 +1,4 @@
+
 // src/components/layout/sidebar-nav.tsx
 'use client';
 
@@ -33,8 +34,12 @@ export function SidebarNav() {
         </SidebarMenuItem>
       ))}
       <SidebarMenuItem className="mt-auto">
-         <SidebarMenuButton asChild tooltip={{children: "Settings", className: "group-data-[collapsible=icon]:block hidden"}}>
-            <Link href="#">
+         <SidebarMenuButton 
+            asChild 
+            isActive={pathname === '/settings'}
+            tooltip={{children: "Settings", className: "group-data-[collapsible=icon]:block hidden"}}
+          >
+            <Link href="/settings">
               <Settings />
               <span>Settings</span>
             </Link>
