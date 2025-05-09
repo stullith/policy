@@ -55,3 +55,53 @@ export interface PolicyComplianceHistory {
   policyName: string;
   history: HistoricalComplianceDataPoint[];
 }
+
+// AI Backend Configuration Types
+export type AIBackendType = 'default' | 'azure_openai' | 'vertex_ai';
+
+// Base client-safe AI configuration
+export interface AIBackendConfigBaseClient {
+  type: AIBackendType;
+}
+
+// Azure OpenAI client-safe configuration
+export interface AzureOpenAIConfigClient extends AIBackendConfigBaseClient {
+  type: 'azure_openai';
+  endpoint: string;
+  deploymentName: string;
+  isApiKeySet: boolean; // Indicates if an API key is configured in Key Vault
+}
+
+// Vertex AI client-safe configuration
+export interface VertexAIConfigClient extends AIBackendConfigBaseClient {
+  type: 'vertex_ai';
+  projectId: string;
+  location: string;
+  modelId: string;
+}
+
+// Union type for client-safe AI configuration
+export type AIConfigurationClient = AIBackendConfigBaseClient | AzureOpenAIConfigClient | VertexAIConfigClient;
+
+// Input type for the AI configuration form (can include API key for update)
+export interface AIBackendConfigInput {
+  type: AIBackendType;
+  azureOpenAIEndpoint?: string;
+  azureOpenAIDeploymentName?: string;
+  azureOpenAIApiKey?: string; // Optional: user might not want to update it, or clear it
+  vertexAIProjectId?: string;
+  vertexAILocation?: string;
+  vertexAIModelId?: string;
+}
+
+// Stored type for AI configuration in Key Vault (includes sensitive data if applicable)
+export interface AIConfigurationStored {
+  type: AIBackendType;
+  azureOpenAIEndpoint?: string;
+  azureOpenAIDeploymentName?: string;
+  azureOpenAIApiKey?: string; // Stored if provided for Azure OpenAI
+  vertexAIProjectId?: string;
+  vertexAILocation?: string;
+  vertexAIModelId?: string;
+}
+
