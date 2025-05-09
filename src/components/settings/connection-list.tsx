@@ -20,24 +20,25 @@ import { Trash2, FileKey } from 'lucide-react';
 interface ConnectionListProps {
   connections: AzureConnectionClient[]; 
   onDeleteConnection: (id: string) => Promise<void>; 
-  keyVaultUnavailable?: boolean;
+  keyVaultUnavailable?: boolean; // Prop remains for potential internal logic
 }
 
 export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavailable }: ConnectionListProps) {
 
-  if (connections.length === 0) {
-    if (keyVaultUnavailable) {
-      return <p className="text-muted-foreground text-center py-4">Azure Key Vault is not configured. Connections cannot be loaded or managed.</p>;
-    }
-    return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured in Key Vault.</p>;
+  if (connections.length === 0 && !keyVaultUnavailable) { // Only show if KV is available but no connections
+    return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured.</p>;
   }
+  // If keyVaultUnavailable is true, the main page shows a warning.
+  // The list might be empty due to KV issue or genuinely no connections.
+  // The hook handles errors for loading connections.
 
   const handleDelete = async (connection: AzureConnectionClient) => {
-    if (keyVaultUnavailable) return; // Should be prevented by disabled button
+    // Server action will handle failure if Key Vault is unavailable
     try {
       await onDeleteConnection(connection.id);
     } catch (error) {
       console.error("Error in handleDelete ConnectionList:", error);
+      // Error is handled by the useConnections hook and displayed as a toast.
     }
   };
 
@@ -62,8 +63,8 @@ export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavai
               <TableCell className="truncate max-w-xs">{conn.clientId}</TableCell>
               <TableCell className="text-right pr-4">
                 <AlertDialog>
-                  <AlertDialogTrigger asChild disabled={keyVaultUnavailable}>
-                    <Button variant="ghost" size="icon" aria-label={`Delete connection ${conn.name}`} disabled={keyVaultUnavailable}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label={`Delete connection ${conn.name}`}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>
@@ -91,6 +92,10 @@ export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavai
           ))}
         </TableBody>
       </Table>
+      {connections.length === 0 && keyVaultUnavailable && (
+         <p className="text-muted-foreground text-center py-4">Connections cannot be loaded because Azure Key Vault is not configured. Please check the warning at the top of the page.</p>
+      )}
     </div>
   );
 }
+
