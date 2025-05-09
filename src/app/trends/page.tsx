@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ComplianceHistoryChart } from "@/components/trends/compliance-history-chart";
 import { placeholderPolicyHistoryData, type PolicyComplianceHistory } from "@/lib/placeholder-data";
 import { TrendingUp } from 'lucide-react';
