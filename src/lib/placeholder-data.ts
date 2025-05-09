@@ -22,6 +22,19 @@ export interface ComplianceSummary {
   criticalViolations: number;
 }
 
+// New interfaces for historical data
+export interface HistoricalComplianceDataPoint {
+  date: string; // "YYYY-MM-DD"
+  compliancePercentage: number;
+}
+
+export interface PolicyComplianceHistory {
+  policyId: string;
+  policyName: string;
+  history: HistoricalComplianceDataPoint[];
+}
+
+
 const sampleSubscriptions = ["Sub-Alpha", "Sub-Bravo", "Sub-Charlie"];
 const sampleResourceGroups = ["RG-WebApp", "RG-Database", "RG-Network", "RG-Storage-Prod", "RG-Storage-Dev"];
 const sampleResourceTypes = ["Virtual Machine", "Storage Account", "SQL Database", "Virtual Network", "App Service"];
@@ -65,3 +78,46 @@ export const placeholderComplianceSummary: ComplianceSummary = {
   totalPolicies: 75,
   criticalViolations: 35,
 };
+
+// Placeholder data for historical compliance
+const generateHistoricalData = (months: number): HistoricalComplianceDataPoint[] => {
+  const data: HistoricalComplianceDataPoint[] = [];
+  let currentCompliance = 70 + Math.random() * 10; // Start between 70-80%
+  for (let i = months -1; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    date.setDate(15); // Mid-month
+    
+    currentCompliance += (Math.random() - 0.45) * 5; // Fluctuate by up to +/- 2.5% generally, slight upward trend
+    currentCompliance = Math.max(50, Math.min(98, currentCompliance)); // Keep within 50-98%
+
+    data.push({
+      date: date.toISOString().split('T')[0], // "YYYY-MM-DD"
+      compliancePercentage: parseFloat(currentCompliance.toFixed(1)),
+    });
+  }
+  return data;
+};
+
+export const placeholderPolicyHistoryData: PolicyComplianceHistory[] = [
+  {
+    policyId: "policy-locations-hist",
+    policyName: "Allowed locations",
+    history: generateHistoricalData(12), // 12 months of data
+  },
+  {
+    policyId: "policy-https-hist",
+    policyName: "Enforce HTTPS only",
+    history: generateHistoricalData(12),
+  },
+  {
+    policyId: "policy-disk-encryption-hist",
+    policyName: "Disk encryption for VMs",
+    history: generateHistoricalData(12),
+  },
+  {
+    policyId: "policy-defender-sql-hist",
+    policyName: "Azure Defender for SQL",
+    history: generateHistoricalData(6), // 6 months of data
+  },
+];
