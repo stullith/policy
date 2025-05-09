@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { AzureConnectionClient } from '@/lib/types'; // Updated type
+import type { AzureConnectionClient } from '@/lib/types'; 
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -16,27 +16,27 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Trash2, FileKey } from 'lucide-react';
-// Toast is now handled by useConnections hook
-// import { useToast } from '@/hooks/use-toast'; 
 
 interface ConnectionListProps {
-  connections: AzureConnectionClient[]; // Updated type
-  onDeleteConnection: (id: string) => Promise<void>; // Updated to be async
+  connections: AzureConnectionClient[]; 
+  onDeleteConnection: (id: string) => Promise<void>; 
+  keyVaultUnavailable?: boolean;
 }
 
-export function ConnectionList({ connections, onDeleteConnection }: ConnectionListProps) {
-  // const { toast } = useToast(); // Toast is now handled by useConnections
+export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavailable }: ConnectionListProps) {
 
   if (connections.length === 0) {
+    if (keyVaultUnavailable) {
+      return <p className="text-muted-foreground text-center py-4">Azure Key Vault is not configured. Connections cannot be loaded or managed.</p>;
+    }
     return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured in Key Vault.</p>;
   }
 
   const handleDelete = async (connection: AzureConnectionClient) => {
+    if (keyVaultUnavailable) return; // Should be prevented by disabled button
     try {
       await onDeleteConnection(connection.id);
-      // Success toast is handled by useConnections hook
     } catch (error) {
-      // Error toast is handled by useConnections hook
       console.error("Error in handleDelete ConnectionList:", error);
     }
   };
@@ -50,7 +50,6 @@ export function ConnectionList({ connections, onDeleteConnection }: ConnectionLi
             <TableHead>Name</TableHead>
             <TableHead>Tenant ID</TableHead>
             <TableHead>Client ID</TableHead>
-            {/* Client Secret column removed for security */}
             <TableHead className="text-right pr-4 w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -61,11 +60,10 @@ export function ConnectionList({ connections, onDeleteConnection }: ConnectionLi
               <TableCell className="font-medium">{conn.name}</TableCell>
               <TableCell className="truncate max-w-xs">{conn.tenantId}</TableCell>
               <TableCell className="truncate max-w-xs">{conn.clientId}</TableCell>
-              {/* Client Secret cell removed */}
               <TableCell className="text-right pr-4">
                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label={`Delete connection ${conn.name}`}>
+                  <AlertDialogTrigger asChild disabled={keyVaultUnavailable}>
+                    <Button variant="ghost" size="icon" aria-label={`Delete connection ${conn.name}`} disabled={keyVaultUnavailable}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </AlertDialogTrigger>

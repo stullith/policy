@@ -45,55 +45,59 @@ const aiConfigFormSchema = z.object({
 type AIConfigFormValues = z.infer<typeof aiConfigFormSchema>;
 
 interface AIConfigurationFormProps {
-  currentConfig: AIConfigurationClient | null; // Can be null if not yet loaded or error
+  currentConfig: AIConfigurationClient | null;
   onSaveConfiguration: (config: AIBackendConfigInput) => Promise<AIConfigurationClient | undefined>;
-  isLoading: boolean; // Loading state from the hook (for fetching or saving)
+  isLoading: boolean; 
+  keyVaultUnavailable?: boolean;
 }
 
-export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoading }: AIConfigurationFormProps) {
+export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoading, keyVaultUnavailable }: AIConfigurationFormProps) {
   const form = useForm<AIConfigFormValues>({
     resolver: zodResolver(aiConfigFormSchema),
-    // Default values are set by useEffect based on currentConfig
   });
 
   const selectedBackendType = form.watch('type');
   const [showApiKeyField, setShowApiKeyField] = useState(false);
 
   useEffect(() => {
-    // Initialize or reset form when currentConfig changes
-    const conf = currentConfig || { type: 'default' }; // Ensure currentConfig is not null
+    const conf = currentConfig || { type: 'default' }; 
     form.reset({
       type: conf.type,
       azureOpenAIEndpoint: conf.type === 'azure_openai' ? (conf as AzureOpenAIConfigClient).endpoint : '',
       azureOpenAIDeploymentName: conf.type === 'azure_openai' ? (conf as AzureOpenAIConfigClient).deploymentName : '',
-      azureOpenAIApiKey: '', // API key field always starts blank for security
+      azureOpenAIApiKey: '', 
       vertexAIProjectId: conf.type === 'vertex_ai' ? (conf as VertexAIConfigClient).projectId : '',
       vertexAILocation: conf.type === 'vertex_ai' ? (conf as VertexAIConfigClient).location : '',
       vertexAIModelId: conf.type === 'vertex_ai' ? (conf as VertexAIConfigClient).modelId : '',
     });
-    setShowApiKeyField(false); // Reset API key visibility
+    setShowApiKeyField(false); 
   }, [currentConfig, form]);
 
 
   async function onSubmit(data: AIConfigFormValues) {
+    if (keyVaultUnavailable) {
+       form.setError("_form" as any, { // Using "any" for _form to avoid excessive type wrestling
+        type: "manual",
+        message: "Cannot save configuration: Azure Key Vault is not configured."
+      });
+      return;
+    }
+
     const submissionData: AIBackendConfigInput = { ...data };
 
     if (data.type === 'azure_openai') {
-      // If API key field was not shown (user didn't click "Change API Key") AND an API key is already set,
-      // send `undefined` for azureOpenAIApiKey to signal the server action to preserve the existing key.
       if (!showApiKeyField && currentConfig?.type === 'azure_openai' && (currentConfig as AzureOpenAIConfigClient).isApiKeySet) {
         submissionData.azureOpenAIApiKey = undefined;
       }
-      // Otherwise, whatever is in data.azureOpenAIApiKey (new key or empty string to clear) will be sent.
     }
 
     try {
       await onSaveConfiguration(submissionData);
-      // Form reset will be handled by the useEffect listening to currentConfig changes
-      // Toast is handled by the useAIConfiguration hook
     } catch (error) {
-      // Error toast also handled by the hook
       console.error("Error in AIConfigurationForm onSubmit:", error);
+       if (error instanceof Error) {
+        form.setError("_form" as any, { type: "manual", message: error.message });
+      }
     }
   }
 
@@ -109,28 +113,26 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormItem>
               <FormLabel>AI Backend Type</FormLabel>
               <Select
+                disabled={keyVaultUnavailable}
                 onValueChange={(newTypeValue) => {
                   const newType = newTypeValue as AIBackendType;
                   field.onChange(newType);
                   setShowApiKeyField(false);
-
-                  // Reset form fields when type changes to avoid sending stale data
-                  // Populate with currentConfig values if switching back to a configured type
                   form.reset({
                     type: newType,
                     azureOpenAIEndpoint: (newType === 'azure_openai' && currentConfig?.type === 'azure_openai') ? (currentConfig as AzureOpenAIConfigClient).endpoint : '',
                     azureOpenAIDeploymentName: (newType === 'azure_openai' && currentConfig?.type === 'azure_openai') ? (currentConfig as AzureOpenAIConfigClient).deploymentName : '',
-                    azureOpenAIApiKey: '', // Always blank on type change for security
+                    azureOpenAIApiKey: '', 
                     vertexAIProjectId: (newType === 'vertex_ai' && currentConfig?.type === 'vertex_ai') ? (currentConfig as VertexAIConfigClient).projectId : '',
                     vertexAILocation: (newType === 'vertex_ai' && currentConfig?.type === 'vertex_ai') ? (currentConfig as VertexAIConfigClient).location : '',
                     vertexAIModelId: (newType === 'vertex_ai' && currentConfig?.type === 'vertex_ai') ? (currentConfig as VertexAIConfigClient).modelId : '',
                   });
-                  form.trigger(); // Re-validate based on new type
+                  form.trigger(); 
                 }}
-                value={field.value || 'default'} // Ensure value is controlled
+                value={field.value || 'default'} 
               >
                 <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Select AI Backend" /></SelectTrigger>
+                  <SelectTrigger disabled={keyVaultUnavailable}><SelectValue placeholder="Select AI Backend" /></SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="default">Default (Google Gemini - Public API)</SelectItem>
@@ -151,7 +153,7 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormField control={form.control} name="azureOpenAIEndpoint" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Azure OpenAI Endpoint</FormLabel>
-                  <FormControl><Input placeholder="https://your-aoai-resource.openai.azure.com/" {...field} /></FormControl>
+                  <FormControl><Input placeholder="https://your-aoai-resource.openai.azure.com/" {...field} disabled={keyVaultUnavailable} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -159,14 +161,14 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormField control={form.control} name="azureOpenAIDeploymentName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Azure OpenAI Deployment Name (Model Name)</FormLabel>
-                  <FormControl><Input placeholder="your-model-deployment-name" {...field} /></FormControl>
+                  <FormControl><Input placeholder="your-model-deployment-name" {...field} disabled={keyVaultUnavailable} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
             {isApiKeyCurrentlySet && !showApiKeyField && (
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowApiKeyField(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowApiKeyField(true)} disabled={keyVaultUnavailable}>
                 Update API Key
               </Button>
             )}
@@ -175,7 +177,7 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
               <FormField control={form.control} name="azureOpenAIApiKey" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Azure OpenAI API Key {isApiKeyCurrentlySet && showApiKeyField ? "(Leave blank to keep existing)" : ""}</FormLabel>
-                    <FormControl><Input type="password" placeholder={isApiKeyCurrentlySet ? "Enter new key to change" : "Enter API Key"} {...field} /></FormControl>
+                    <FormControl><Input type="password" placeholder={isApiKeyCurrentlySet ? "Enter new key to change" : "Enter API Key"} {...field} disabled={keyVaultUnavailable} /></FormControl>
                     <FormDescription className="text-muted-foreground">
                       {isApiKeyCurrentlySet && showApiKeyField ? "If you leave this blank, the existing API key will be retained. " : ""}
                       API Key will be stored securely in Azure Key Vault.
@@ -202,7 +204,7 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormField control={form.control} name="vertexAIProjectId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Google Cloud Project ID</FormLabel>
-                  <FormControl><Input placeholder="your-gcp-project-id" {...field} /></FormControl>
+                  <FormControl><Input placeholder="your-gcp-project-id" {...field} disabled={keyVaultUnavailable} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -210,7 +212,7 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormField control={form.control} name="vertexAILocation" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vertex AI Location</FormLabel>
-                  <FormControl><Input placeholder="e.g., us-central1" {...field} /></FormControl>
+                  <FormControl><Input placeholder="e.g., us-central1" {...field} disabled={keyVaultUnavailable} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -218,7 +220,7 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             <FormField control={form.control} name="vertexAIModelId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vertex AI Model ID</FormLabel>
-                  <FormControl><Input placeholder="e.g., gemini-1.5-flash-001" {...field} /></FormControl>
+                  <FormControl><Input placeholder="e.g., gemini-1.5-flash-001" {...field} disabled={keyVaultUnavailable} /></FormControl>
                   <FormDescription>Ensure this application's service account (if applicable) or compute environment has 'Vertex AI User' permissions on the project.</FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -226,7 +228,12 @@ export function AIConfigurationForm({ currentConfig, onSaveConfiguration, isLoad
             />
           </>
         )}
-        <Button type="submit" disabled={isLoading || form.formState.isSubmitting} className="w-full sm:w-auto">
+        {form.formState.errors["_form" as any] && (
+          <p className="text-sm font-medium text-destructive">
+            {(form.formState.errors["_form" as any] as any).message}
+          </p>
+        )}
+        <Button type="submit" disabled={isLoading || form.formState.isSubmitting || keyVaultUnavailable} className="w-full sm:w-auto">
           {isLoading || form.formState.isSubmitting ? 'Saving...' : <><Save className="mr-2 h-4 w-4" /> Save AI Configuration</>}
         </Button>
       </form>

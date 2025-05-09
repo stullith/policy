@@ -21,10 +21,11 @@ const connectionFormSchema = z.object({
 type ConnectionFormValues = z.infer<typeof connectionFormSchema>;
 
 interface NewConnectionFormProps {
-  onAddConnection: (connection: AzureConnectionInput) => Promise<AzureConnectionClient | undefined>; // Updated to be async and return client data or undefined on error
+  onAddConnection: (connection: AzureConnectionInput) => Promise<AzureConnectionClient | undefined>;
+  keyVaultUnavailable?: boolean;
 }
 
-export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
+export function NewConnectionForm({ onAddConnection, keyVaultUnavailable }: NewConnectionFormProps) {
   // toast is now handled by useConnections hook upon success/failure of server action
   // const { toast } = useToast(); 
   
@@ -39,16 +40,28 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
   });
 
   async function onSubmit(data: ConnectionFormValues) {
+    if (keyVaultUnavailable) {
+      // This case should ideally be prevented by disabling the button,
+      // but as a safeguard:
+      form.setError("_form" as any, { // Using "any" for _form to avoid excessive type wrestling for this specific case
+        type: "manual",
+        message: "Cannot add connection: Azure Key Vault is not configured."
+      });
+      // Optionally, show a toast here if desired, though the main page already warns.
+      // toast({ title: "Operation Failed", description: "Azure Key Vault is not configured.", variant: "destructive" });
+      return;
+    }
     try {
       const newConnectionClientData = await onAddConnection(data);
-      if (newConnectionClientData) { // Check if connection was successfully added
-        form.reset(); // Reset form fields after successful submission
+      if (newConnectionClientData) { 
+        form.reset(); 
       }
-      // Success toast is handled by useConnections hook
     } catch (error) {
-      // Error toast is handled by useConnections hook
-      // No need to display another toast here unless for specific form errors not caught by the hook
       console.error("Error in onSubmit NewConnectionForm:", error);
+      // Error is typically handled by the hook, but if specific form errors are needed:
+      // if (error instanceof Error) {
+      //   form.setError("_form" as any, { type: "manual", message: error.message });
+      // }
     }
   }
 
@@ -62,7 +75,7 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
             <FormItem>
               <FormLabel>Connection Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Contoso Production Tenant" {...field} />
+                <Input placeholder="e.g., Contoso Production Tenant" {...field} disabled={keyVaultUnavailable} />
               </FormControl>
               <FormDescription>A friendly name to identify this Azure tenant connection.</FormDescription>
               <FormMessage />
@@ -76,7 +89,7 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
             <FormItem>
               <FormLabel>Azure Tenant ID</FormLabel>
               <FormControl>
-                <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {...field} />
+                <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {...field} disabled={keyVaultUnavailable} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,7 +102,7 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
             <FormItem>
               <FormLabel>Application (Client) ID</FormLabel>
               <FormControl>
-                <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {...field} />
+                <Input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {...field} disabled={keyVaultUnavailable} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -102,7 +115,7 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
             <FormItem>
               <FormLabel>Client Secret Value</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Enter Client Secret Value" {...field} />
+                <Input type="password" placeholder="Enter Client Secret Value" {...field} disabled={keyVaultUnavailable} />
               </FormControl>
               <FormDescription className="text-accent">
                 This secret will be securely stored in Azure Key Vault using your application's Managed Identity.
@@ -111,7 +124,12 @@ export function NewConnectionForm({ onAddConnection }: NewConnectionFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
+        {form.formState.errors["_form" as any] && (
+          <p className="text-sm font-medium text-destructive">
+            {(form.formState.errors["_form"as any] as any).message}
+          </p>
+        )}
+        <Button type="submit" disabled={form.formState.isSubmitting || keyVaultUnavailable} className="w-full sm:w-auto">
           {form.formState.isSubmitting ? 'Adding...' : <><PlusCircle className="mr-2 h-4 w-4" /> Add Connection</>}
         </Button>
       </form>
