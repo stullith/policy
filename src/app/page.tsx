@@ -4,7 +4,7 @@ import { ExportButton } from "@/components/compliance/export-button";
 import { ComplianceDataTable } from "@/components/compliance/compliance-data-table";
 import { placeholderComplianceItems, placeholderComplianceSummary, placeholderSubscriptionHistoryData } from "@/lib/placeholder-data";
 import { Package, ShieldCheck, ShieldAlert, Percent, TrendingUp } from "lucide-react";
-import { SubscriptionComplianceChart } from "@/components/trends/subscription-compliance-chart";
+import { OverallSubscriptionComplianceChart } from "@/components/trends/overall-subscription-compliance-chart"; // New import
 import { Card, CardContent } from "@/components/ui/card";
 
 
@@ -51,24 +51,22 @@ export default function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <TrendingUp className="mr-3 h-7 w-7 text-primary" />
-          Subscription Compliance Trends
-        </h2>
+        {/* Replaced individual charts with a single overview chart */}
         {subscriptionHistory.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-            {subscriptionHistory.map((subHistory) => (
-              <SubscriptionComplianceChart
-                key={subHistory.subscriptionId}
-                data={subHistory.history}
-                title={`${subHistory.subscriptionName} - Trend`}
-                description={`Historical compliance for ${subHistory.subscriptionName}.`}
-              />
-            ))}
-          </div>
+          <OverallSubscriptionComplianceChart
+            data={subscriptionHistory}
+            title="Overall Subscription Compliance Trends"
+            description="Historical compliance trends for all tracked subscriptions."
+          />
         ) : (
           <Card>
-            <CardContent className="pt-6"> {/* Ensure CardContent is imported and used correctly */}
+             <CardHeader>
+                <CardTitle className="flex items-center">
+                    <TrendingUp className="mr-3 h-7 w-7 text-primary" />
+                    Subscription Compliance Trends
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
               <p className="text-muted-foreground">No subscription historical data available to display trends.</p>
             </CardContent>
           </Card>
