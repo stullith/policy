@@ -24,9 +24,20 @@ export async function addAzureConnectionToKeyVault(
   const secretName = `${KEY_VAULT_SECRET_PREFIX}${connectionId}`;
   
   const connectionToStore: AzureConnectionStored = {
-    ...connectionData,
     id: connectionId,
+    name: connectionData.name,
+    tenantId: connectionData.tenantId,
+    clientId: connectionData.clientId,
+    authMethod: connectionData.authMethod,
   };
+
+  if (connectionData.authMethod === 'clientSecret' && connectionData.clientSecret) {
+    connectionToStore.clientSecret = connectionData.clientSecret;
+  } else if (connectionData.authMethod === 'clientSecret' && !connectionData.clientSecret) {
+    // This case should ideally be caught by form validation, but as a safeguard:
+    throw new Error('Client Secret is required when authentication method is Client Secret.');
+  }
+
 
   try {
     await client.setSecret(secretName, JSON.stringify(connectionToStore));
@@ -36,6 +47,7 @@ export async function addAzureConnectionToKeyVault(
       name: connectionData.name,
       tenantId: connectionData.tenantId,
       clientId: connectionData.clientId,
+      authMethod: connectionData.authMethod,
     };
   } catch (error) {
     console.error(`Failed to add connection ${connectionData.name} to Key Vault:`, error);
@@ -58,6 +70,7 @@ export async function getAzureConnectionsFromKeyVault(): Promise<AzureConnection
             name: storedConnection.name,
             tenantId: storedConnection.tenantId,
             clientId: storedConnection.clientId,
+            authMethod: storedConnection.authMethod || 'clientSecret', // Default to clientSecret for older entries
             // clientSecret is deliberately not included
           });
         }
@@ -83,3 +96,4 @@ export async function deleteAzureConnectionFromKeyVault(connectionId: string): P
     throw new Error(`Failed to delete connection from Key Vault.`);
   }
 }
+

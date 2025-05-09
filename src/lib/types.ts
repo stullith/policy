@@ -4,12 +4,18 @@ export interface AzureConnectionInput {
   name: string;
   tenantId: string;
   clientId: string;
-  clientSecret: string; 
+  authMethod: 'clientSecret' | 'oidcFederated';
+  clientSecret?: string; 
 }
 
 // Defines the structure for connection data as stored (e.g., in Key Vault, includes ID).
-export interface AzureConnectionStored extends AzureConnectionInput {
+export interface AzureConnectionStored {
   id: string;
+  name: string;
+  tenantId: string;
+  clientId: string;
+  authMethod: 'clientSecret' | 'oidcFederated';
+  clientSecret?: string; // Only present if authMethod is clientSecret
 }
 
 // Defines the structure for connection data as used on the client-side (omits clientSecret).
@@ -18,6 +24,7 @@ export interface AzureConnectionClient {
   name: string;
   tenantId: string;
   clientId: string;
+  authMethod: 'clientSecret' | 'oidcFederated';
   // clientSecret is deliberately omitted for security
 }
 
@@ -112,4 +119,5 @@ export interface AIConfigurationStored {
   vertexAILocation?: string;
   vertexAIModelId?: string;
 }
+
 

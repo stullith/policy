@@ -15,32 +15,50 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Trash2, FileKey } from 'lucide-react';
+import { Trash2, FileKey, Lock, Repeat } from 'lucide-react'; // Added Lock for Client Secret, Repeat for OIDC
+import { Badge } from '@/components/ui/badge';
 
 interface ConnectionListProps {
   connections: AzureConnectionClient[]; 
   onDeleteConnection: (id: string) => Promise<void>; 
-  keyVaultUnavailable?: boolean; // Prop remains for potential internal logic
+  keyVaultUnavailable?: boolean;
 }
 
 export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavailable }: ConnectionListProps) {
 
-  if (connections.length === 0 && !keyVaultUnavailable) { // Only show if KV is available but no connections
+  if (connections.length === 0 && !keyVaultUnavailable) {
     return <p className="text-muted-foreground text-center py-4">No Azure tenant connections configured.</p>;
   }
-  // If keyVaultUnavailable is true, the main page shows a warning.
-  // The list might be empty due to KV issue or genuinely no connections.
-  // The hook handles errors for loading connections.
 
   const handleDelete = async (connection: AzureConnectionClient) => {
-    // Server action will handle failure if Key Vault is unavailable
     try {
       await onDeleteConnection(connection.id);
     } catch (error) {
       console.error("Error in handleDelete ConnectionList:", error);
-      // Error is handled by the useConnections hook and displayed as a toast.
     }
   };
+
+  const getAuthMethodDisplay = (authMethod: 'clientSecret' | 'oidcFederated') => {
+    switch (authMethod) {
+      case 'clientSecret':
+        return (
+          <Badge variant="secondary" className="whitespace-nowrap">
+            <Lock className="mr-1 h-3 w-3" />
+            Client Secret
+          </Badge>
+        );
+      case 'oidcFederated':
+        return (
+          <Badge variant="outline" className="whitespace-nowrap border-accent text-accent">
+             <Repeat className="mr-1 h-3 w-3" />
+            OIDC Federated
+          </Badge>
+        );
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
 
   return (
     <div className="rounded-md border">
@@ -51,6 +69,7 @@ export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavai
             <TableHead>Name</TableHead>
             <TableHead>Tenant ID</TableHead>
             <TableHead>Client ID</TableHead>
+            <TableHead>Auth Method</TableHead>
             <TableHead className="text-right pr-4 w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -59,8 +78,9 @@ export function ConnectionList({ connections, onDeleteConnection, keyVaultUnavai
             <TableRow key={conn.id}>
               <TableCell className="pl-4"><FileKey className="h-5 w-5 text-primary" /></TableCell>
               <TableCell className="font-medium">{conn.name}</TableCell>
-              <TableCell className="truncate max-w-xs">{conn.tenantId}</TableCell>
-              <TableCell className="truncate max-w-xs">{conn.clientId}</TableCell>
+              <TableCell className="truncate max-w-[200px] sm:max-w-xs">{conn.tenantId}</TableCell>
+              <TableCell className="truncate max-w-[200px] sm:max-w-xs">{conn.clientId}</TableCell>
+              <TableCell>{getAuthMethodDisplay(conn.authMethod)}</TableCell>
               <TableCell className="text-right pr-4">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
